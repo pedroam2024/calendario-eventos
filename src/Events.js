@@ -111,4 +111,5 @@ const Events = ({ event, handleOperation, handleClose, operationType }) => {
   );
 };
 
+
 export default Events;

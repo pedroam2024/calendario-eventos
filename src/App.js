@@ -6,6 +6,8 @@ import { Modal, Button } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'moment/locale/es';
 import Events from './Events'; // Importa el componente Events
+import { NotificationContainer, NotificationManager } from 'react-notifications'; // Importa react-notifications
+import 'react-notifications/lib/notifications.css'; // Estilos para react-notifications
 
 const localizer = momentLocalizer(moment);
 
@@ -18,14 +20,20 @@ function App() {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await fetch('https://service-event.onrender.com/events');
+        const response = await fetch('https://service-event.onrender.com/events', {
+          headers: {
+            'api-key': 'bi-key-test', // Reemplaza 'YOUR_API_KEY_HERE' con tu API key
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Error fetching events');
+        }
         const data = await response.json();
 
         console.log('Data from API:', data); // Log de los datos recibidos del servicio
 
         // Mapea los eventos y convierte las fechas TIMESTAMP a objetos Date
         const mappedEvents = data.map(event => ({
-          
           id: event.id,
           title: event.title,
           start: new Date(event.fechainicio),
@@ -34,12 +42,14 @@ function App() {
           email: event.email,
           phone: event.phone,
         }));
-        
+
         console.log('Mapped Events:', mappedEvents); // Log de los eventos mapeados
 
         setEvents(mappedEvents); // Actualiza el estado con los eventos mapeados
+        NotificationManager.success('Eventos cargados exitosamente'); // Notificación de éxito al cargar eventos
       } catch (error) {
         console.error('Error fetching events:', error);
+        NotificationManager.error(`Hubo un error al cargar los eventos. Detalle: ${error.message}`); // Notificación de error
       }
     };
 
@@ -62,16 +72,19 @@ function App() {
     if (type === 'INS') {
       // Lógica para agregar un nuevo evento
       setEvents([...events, updatedEvent]);
+      NotificationManager.success('Evento agregado exitosamente'); // Notificación de éxito al agregar evento
     } else if (type === 'UPD') {
       // Lógica para actualizar un evento existente
       const updatedEvents = events.map((event) =>
         event.id === updatedEvent.id ? updatedEvent : event
       );
       setEvents(updatedEvents);
+      NotificationManager.success('Evento actualizado exitosamente'); // Notificación de éxito al actualizar evento
     } else if (type === 'DLT') {
       // Lógica para eliminar un evento
       const filteredEvents = events.filter((event) => event.id !== updatedEvent.id);
       setEvents(filteredEvents);
+      NotificationManager.success('Evento eliminado exitosamente'); // Notificación de éxito al eliminar evento
     }
     setShowModal(false);
     setSelectedEvent(null);
@@ -130,6 +143,9 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* Contenedor para las notificaciones */}
+      <NotificationContainer />
 
       {/* Modal para mostrar detalles del evento */}
       <Modal show={showModal} onHide={handleCloseModal}>

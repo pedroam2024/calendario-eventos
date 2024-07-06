@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Button } from 'react-bootstrap';
 import moment from 'moment';
+import { NotificationManager } from 'react-notifications';
 
 const Events = ({ event, handleOperation, handleClose, operationType }) => {
   const [id, setId] = useState('');
@@ -33,18 +34,83 @@ const Events = ({ event, handleOperation, handleClose, operationType }) => {
     }
   }, [event]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const updatedEvent = {
-      id,
+    const newEvent = {
       title,
-      start: moment(start).toDate(),
-      end: moment(end).toDate(),
+      fechainicio: moment(start).toISOString(),
+      fechafin: moment(end).toISOString(),
       description,
       email,
       phone,
     };
-    handleOperation(updatedEvent, operationType);
+
+    try {
+      // Llamada al servicio para agregar un nuevo evento
+      const response = await fetch('https://service-event.onrender.com/events', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': 'bi-key-test', // Reemplaza 'YOUR_API_KEY_HERE' con tu API key
+        },
+        body: JSON.stringify(newEvent),
+      });
+
+      if (!response.ok) {
+        throw new Error('No se pudo agregar el evento');
+      }
+
+      // Mostrar notificación de éxito
+      NotificationManager.success('El evento ha sido agregado correctamente', 'Éxito');
+
+      // Llamar al manejador para actualizar la lista de eventos o realizar alguna acción adicional
+      handleOperation(newEvent, 'INS');
+      resetForm(); // Limpiar el formulario después de agregar
+    } catch (error) {
+      console.error('Error al agregar el evento:', error);
+
+      // Mostrar notificación de error
+      NotificationManager.error(`Hubo un error al agregar el evento. Detalle: ${error.message}`, 'Error');
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      // Llamada al servicio para eliminar el evento
+      const response = await fetch(`https://service-event.onrender.com/events/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+         'api-key': 'bi-key-test', // Reemplaza 'YOUR_API_KEY_HERE' con tu API key
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('No se pudo eliminar el evento');
+      }
+
+      // Mostrar notificación de éxito
+      NotificationManager.success('El evento ha sido eliminado correctamente', 'Éxito');
+
+      // Llamar al manejador para eliminar el evento localmente
+      handleOperation(event, 'DLT');
+      handleClose(); // Cerrar el formulario después de eliminar
+    } catch (error) {
+      console.error('Error al eliminar el evento:', error);
+
+      // Mostrar notificación de error
+      NotificationManager.error(`Hubo un error al eliminar el evento. Detalle: ${error.message}`, 'Error');
+    }
+  };
+
+  const resetForm = () => {
+    setTitle('');
+    setStart('');
+    setEnd('');
+    setDescription('');
+    setEmail('');
+    setPhone('');
+    setHelpText('Llene los campos para agregar un nuevo evento.');
   };
 
   return (
@@ -98,7 +164,7 @@ const Events = ({ event, handleOperation, handleClose, operationType }) => {
             <Button variant="primary" type="submit">
               Guardar
             </Button>&nbsp;
-            <Button variant="danger" onClick={() => handleOperation(event, 'DLT')} className="ml-2">
+            <Button variant="danger" onClick={handleDelete} className="ml-2">
               Eliminar
             </Button>
           </>
@@ -110,6 +176,5 @@ const Events = ({ event, handleOperation, handleClose, operationType }) => {
     </Form>
   );
 };
-
 
 export default Events;
